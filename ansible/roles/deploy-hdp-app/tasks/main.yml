@@ -1,0 +1,50 @@
+---
+- name: ensure deployment stage dir exists
+  file:
+    path: "{{ deploy_stage_dir }}"
+    state: directory
+  check_mode: no
+
+- name: "create the hdfs directories  (count {{ deploy_hdfs_dirs|length }})"
+  include_tasks: deploy-hdfs-dirs.yml
+  with_items: "{{ deploy_hdfs_dirs }}"
+  loop_control:
+    loop_var: dir
+
+- name: "deploy the application config files (count {{ deploy_app_config_files|length }})"
+  include_tasks: deploy-to-{{deploy_fs_type}}.yml
+  vars:
+    app: "{{ deploy_app }}"
+  with_items: "{{ deploy_app_config_files }}"
+  loop_control:
+    loop_var: file
+
+- name: "deploy the artifacts (count {{ deploy_app_jars |length }})"
+  include_tasks: deploy-to-{{deploy_fs_type}}.yml
+  vars:
+    deploy_template: False
+  with_items: "{{ deploy_app_jars }}"
+  loop_control:
+    loop_var: file
+
+- name: "deploy the directories (count {{ deploy_app_directories |length }})"
+  include_tasks: deploy-dirs-to-hdfs.yml
+  vars:
+    deploy_template: False
+  with_items: "{{ deploy_app_directories }}"
+  loop_control:
+    loop_var: file
+
+# Note: Since ansible v2.5 tags are broken with includes, see: https://github.com/ansible/ansible/issues/30882
+#  tags: jars
+
+- name: "deploy optional files from the remote local-fs (count {{ deploy_local_files |length }})"
+  include_tasks: remote-copy-to-hdfs.yml
+  vars:
+    # New feature: If file.hdfs_dst_file is not set, use the (role) var 'deploy_hdfs_dst_dir' (then mandatory!)
+    hdfs_dst_file: "{{ file.hdfs_dst_file | default(deploy_hdfs_dst_dir) | mandatory }}"
+    remote_src_file: "{{ file.src_file }}"
+    hdfs_deploy_user: "{{ file.hdfs_file_owner | default(hdfs_file_owner) |default() }}"
+  with_items: "{{ deploy_remote_fs_files }}"
+  loop_control:
+    loop_var: file

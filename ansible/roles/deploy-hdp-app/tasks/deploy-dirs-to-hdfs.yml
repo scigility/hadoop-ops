@@ -1,0 +1,29 @@
+---
+- block:
+  - set_fact:
+      hdfs_dst_file: "{{ _hdfs_dst_file }}"
+      remote_src_file: "{{ deploy_stage_dir }}/{{ _hdfs_dst_file | basename }}"
+      hdfs_deploy_user: "{{ file.hdfs_file_owner | default(hdfs_file_owner) | default() }}"
+  vars:
+    _hdfs_dst_file1: "{{ file.hdfs_dst_file | default(deploy_hdfs_dst_dir) | mandatory }}"
+    _hdfs_dst_file: "{{ _hdfs_dst_file1 + ( _hdfs_dst_file1.endswith('/') | ternary(file.src_file|basename, '') ) }}"    
+  tags: always
+
+
+# phase 'deploy_new_to_stage'
+- block:
+    - name: deploy directory {{ file.src_file }} to the stage folder
+      copy:
+        src: "{{ file.src_file }}"
+        dest: "{{ remote_src_file | dirname  }}"
+        mode: "{{ file.mode | default('omit') }}"
+  when: file.deploy_new_to_stage | default(deploy_new_to_stage)
+
+
+# phase 'deploy_to_hdfs'
+- block:
+    - name: deploy to hdfs {{hdfs_dst_file}}
+      command: "hdfs dfs -put {{ '-f' if deploy_to_hdfs_force }} {{ remote_src_file }} {{ hdfs_dst_file | dirname  }}"
+  become: "{{ ((hdfs_deploy_user | default('')) != '') | ternary('yes','no') }}"
+  become_user: "{{ hdfs_deploy_user | default('omit') }}"
+  when: file.deploy_to_hdfs | default(deploy_to_hdfs)|bool

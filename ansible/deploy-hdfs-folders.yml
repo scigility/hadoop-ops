@@ -1,0 +1,38 @@
+# playbook to deploy hdfs folder using the role deploy-hdp-app (deploy_hdfs_dirs feature)
+#
+# Supported vars:
+# - `hosts`: target host or inventory group
+#
+# Example run:
+# ansible-playbook  deploy-hdfs-folders.yml  -i $INVENTORY --diff -v
+#
+- hosts: "{{ hosts | default('edge') }}"
+  # gather_facts required for the "ansible_fqdn" fact (required by a kerberos_kinit role var)
+  gather_facts: yes
+  become: yes
+  run_once: true
+  vars:
+    hdfs_folder_tenant_envs: "{{ hdfs_tenant_envs | default([]) }}"
+    # Following var is set in our group_vars
+    # hdfs_root_user: hdfs
+  tasks:
+    - import_role:
+        name: kerberos_kinit
+      vars:
+        kerberos_kinit_realm: "{{ kerberos_realm }}"
+        kerberos_kinit_user: "{{ hdfs_root_user }}"
+      when: do_kinit | default(True) | bool
+      tags: kinit
+
+    - name: deploying hdfs folders for all tenants
+      block:
+        - name: deploying hdfs base folders
+          include_role:
+            name: deploy-hdp-app
+          vars:
+            deploy_hdfs_dirs: "{{ hdfs_folders }}"
+            tenant: "{{ item.tenant }}"
+            env: "{{ item.env }}"
+          loop: "{{ hdfs_folder_tenant_envs }}"
+      tags: hdfs-folders
+      when: hdfs_folder_tenant_envs is defined

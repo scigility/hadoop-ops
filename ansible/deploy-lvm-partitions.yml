@@ -1,0 +1,43 @@
+## Playbook to deploy LVM partitions
+## - requires 'lvm2' package to be installed
+##
+- hosts: "{{ hosts }}"
+  gather_facts: no
+  become: yes
+  vars:
+    file_system_default: 'ext4'
+    #following var has to be provided (in the group_vars)
+    #lvm_vgs: []
+
+  tasks:
+   - name: Create VG for vg_u01
+     lvg:
+       vg: "{{ item.vg_name }}" ## Name of Volume group.
+       pvs: "{{ item.pvs_name }}" ## Physical Volume created using partition eg (/dev/sdb1 or /dev/sdc1)
+       #pesize: TODO
+     when: item.pvs_name is defined
+     with_items: "{{ lvm_vgs }}"
+
+     #Note: the lvol module fails when run on an existing lv IFF 'size' is specified!
+   - name: Create LVM lv_u01 for "{{ item.mount_point }}" file system.
+     lvol:
+       vg: "{{ item.vg_name }}"
+       lv: "{{ item.lv_name }}" ## Name of Logical volume need to be created
+       size: "{{ item.lv_size }}"
+       #size: 100%FREE ## All the PE's in Volume group will be used for creating the logical volume.
+     with_items: "{{ lvm_vgs }}"
+
+   - name: Create the file system on newly created Logical volume for "{{ item.mount_point }}".
+     filesystem:
+       fstype: "{{ item.file_system | default(file_system_default) }}" ## What type of filesystem required eg:(ext3, ext4, xfs etc.)
+       dev: "/dev/mapper/{{ item.vg_name }}-{{ item.lv_name }}" ## Full related path of device mapper to be created with creating FS.
+     with_items: "{{ lvm_vgs }}"
+
+   - name: Mount the created filesystem ## This is to create the FSTAB entry and mount the Filesystem.
+     mount:
+       path: "{{ item.mount_point }}" ## Mount point where to mount the FS.
+       src: "/dev/mapper/{{ item.vg_name }}-{{ item.lv_name }}" ## Full related path of device mapper to be mounted under mount point.
+       fstype: "{{ item.file_system | default(file_system_default) }}" ## Filesystem type
+       #opts: rw,noatime  ## Mount options
+       state: mounted
+     with_items: "{{ lvm_vgs }}"

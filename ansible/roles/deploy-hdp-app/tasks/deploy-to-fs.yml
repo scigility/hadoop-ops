@@ -1,0 +1,24 @@
+---
+- block:
+  - set_fact:
+      _dst: "{{ deploy_stage_dir }}/{{ file.dst | basename }}"
+      _owner: "{{ file.owner | default(deploy_file_owner) | default() }}"
+  tags: always
+
+- block:
+    - name: deploy template {{ file.src }} to the stage folder
+      template:
+        src: "{{ file.src }}"
+        dest: "{{ _dst | dirname  }}"
+        mode: "{{ file.mode | default('omit') }}"
+        owner: "{{ _owner | default('omit') }}"
+      when: use_template
+    - name: deploy file {{ file.src }} to the stage folder
+      copy:
+        src: "{{ file.src }}"
+        dest: "{{ _dst | dirname  }}"
+        mode: "{{ file.mode | default('omit') }}"
+        owner: "{{ _owner | default('omit') }}"
+      when: not use_template
+  vars:
+    use_template: "{{ file.use_template | default(deploy_template) | default(False) }}"

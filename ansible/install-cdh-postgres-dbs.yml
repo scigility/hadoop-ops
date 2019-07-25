@@ -1,0 +1,30 @@
+## Playbook to deploy the databases required for a Cloudera CDH Setup
+# Required input vars: 
+# - databases:  dict following the format of the 'databases' var from cloudera playbook group_vars/db_server.yml
+#
+- hosts: all
+  gather_facts: true
+  become: yes
+  #TODO following vars should be in group_vars
+  vars:
+      postgresql_config_path: /var/lib/pgsql/9.6/data
+      postgresql_daemon: postgresql-9.6.service
+  tasks:
+    - name: deploy databases configured for CDH cluster
+      include_role:
+        # we use our role, because the original role does not support to update single pg_hba.conf entries
+        name: "postgres-mgmt"
+      static: no  
+      vars:
+        db_name: "{{ item.value.name }}"   
+        db_user: "{{ item.value.user }}"
+        db_password: "{{ item.value.pass  }}"
+        postgresql_users:
+          - name: "{{ db_user }}" #required; the rest are optional
+            password: "{{ db_password }}" # defaults to not set
+        postgresql_databases:
+          - name: "{{ db_name }}" # required; the rest are optional
+            owner: "{{ db_user }}" # defaults to postgresql_user
+        postgresql_hba_entries: 
+          - {type: host, database: "{{ db_name }}", user: "{{ db_user}}", address: "0.0.0.0/0", auth_method: md5}
+      loop: "{{ databases | dict2items }}"

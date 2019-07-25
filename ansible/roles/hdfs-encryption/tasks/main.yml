@@ -1,0 +1,15 @@
+---
+
+- name: "create crypto zones (count {{ hdfs_encryption_zones | length }})"
+  include_tasks: create-crypto-zone.yml
+  with_items: "{{ hdfs_encryption_zones }}"
+  loop_control:
+    loop_var: zone
+
+- block:
+    - name: list all the crypto zones
+      command: "hdfs crypto -listZones"
+      changed_when: False
+  become: yes
+  become_user: "{{ hdfs_encryption_user }}"
+  when: hdfs_encryption_listZones | bool

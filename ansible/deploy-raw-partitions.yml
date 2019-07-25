@@ -1,0 +1,25 @@
+## Playbook to deploy raw partitions (without LVM involved)
+
+- hosts: "{{ hosts }}"
+  gather_facts: no
+  become: yes
+  vars:
+    file_system_default: 'ext4'
+    # var 'fs_partitions' has to be provided (in the group_vars)
+    __fs_partitions: "{{ fs_partitions | default([]) }}"
+
+  tasks:
+   - name: Create the file system "{{ item.mount_point }}".
+     filesystem:
+       fstype: "{{ item.file_system | default(file_system_default) }}"
+       dev: "{{ item.device }}"
+     with_items: "{{ __fs_partitions }}"
+
+   - name: Mount the created filesystem ## This is to create the FSTAB entry and mount the Filesystem.
+     mount:
+       path: "{{ item.mount_point }}"
+       src: "{{ item.device }}"
+       fstype: "{{ item.file_system | default(file_system_default) }}" ## Filesystem type
+       opts: rw,noatime,noexec,nodev,nosuid ## Mount options
+       state: mounted
+     with_items: "{{ __fs_partitions }}"

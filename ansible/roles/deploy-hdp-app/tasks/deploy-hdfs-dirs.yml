@@ -1,0 +1,28 @@
+---
+- set_fact:
+    dir_owner: "{{ dir.owner | default(hdfs_dir_owner) | default('') }}"
+    dir_mode: "{{ dir.mode | default(hdfs_dir_mode) | default('') }}"
+  tags: always
+
+- block:
+    - name: exists the hdfs dir {{ dir.name }}
+      command: "hdfs dfs -test -d {{ dir.name }}"
+      register: dir_check
+      failed_when: dir_check.rc not in [0,1]
+      changed_when: dir_check.rc == 1
+      check_mode: no
+
+    - name: create the hdfs dir {{ dir.name }}
+      shell: "hdfs dfs -test -d {{ dir.name }} || hdfs dfs -mkdir {{ dir.parent_dirs|default(False)|ternary('-p','') }} {{ dir.name }}"
+      when: dir_check.rc is defined and  dir_check.rc == 1
+
+    - name: chown the hdfs dir {{ dir.name }}
+      shell: "hdfs dfs -test -d {{ dir.name }} && hdfs dfs -chown {{ dir_owner }} {{ dir.name }}"
+      when: dir_owner != ''
+
+    - name: chmod the hdfs dir {{ dir.name }}
+      shell: "hdfs dfs -test -d {{ dir.name }} && hdfs dfs -chmod {{ dir_mode }} {{ dir.name }}"
+      when: dir_mode != ''
+  # Note: Sudo as non-root user (using the root's passwd) might require tricks with become_exe (see inventory vars)
+  become: yes
+  become_user: "{{ hdfs_root_user }}"

@@ -1,0 +1,42 @@
+# playbook to deploy the user's home folder using the role deploy-hdp-app (deploy_hdfs_dirs feature)
+#
+# Notes:
+# - The playbook should be run on a hdfs-namenode (can be configured in var hosts_namenode below)
+#
+# Supported vars:
+# - `hosts`: target host or inventory group
+# - `users`: list of users, where each element must be a dict containing a key 'username'
+#
+# Example run:
+# ansible-playbook  deploy-users-hdfs-home.yml  -i $INVENTORY --diff -v
+#
+- hosts: "{{ hosts | default('edge') }}"
+  # gather_facts required for the "ansible_fqdn" fact (required by a kerberos_kinit role var)
+  gather_facts: yes
+  become: yes
+  run_once: true
+  vars:
+    hdfs_users: "{{ users }}"
+    # Following var is set in our group_vars
+    # hdfs_root_user: hdfs
+  tasks:
+    - import_role:
+        name: kerberos_kinit
+      vars:
+        kerberos_kinit_realm: "{{ kerberos_realm }}"
+        kerberos_kinit_user: "{{ hdfs_root_user }}"
+      when: do_kinit | default(True) | bool
+      tags: kinit      
+
+    - name: deploying hdfs home-folders
+      block:
+        - debug:
+            msg: "hdfs_users={{hdfs_users}}"
+        - include_role:
+            name: deploy-hdp-app
+          vars:
+            deploy_hdfs_dirs:
+              - name: "/user/{{ item.username }}"
+                owner: "{{ item.username }}"
+          with_items: "{{ hdfs_users }}"
+      tags: hdfs-home

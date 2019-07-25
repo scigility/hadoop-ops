@@ -1,0 +1,37 @@
+# playbook to deploy groups and users using ansible on any OS (EL/redhat, debian/ubuntu, suse)
+#
+# Notes:
+# - This playbook depends on 2 external roles, added via git sub modules:
+#   - ansible-users (singleplatform-eng.users)
+#   - ansible-sudoers (ahuffman.sudoers)
+# - in case you want to create users with encrypted passwords see:
+#   https://docs.ansible.com/ansible/latest/reference_appendices/faq.html#how-do-i-generate-crypted-passwords-for-the-user-module
+
+- hosts: all
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: deploying groups and users
+      block:
+        - debug:
+            msg:
+              - "groups_to_create={{groups_to_create}}"
+              - "users={{users}}"
+        - import_role:
+            name: ansible-users
+      tags: users
+
+    - name: deploying sudoers
+      block:
+        - debug:
+            msg: "sudoer_specs={{sudoer_specs}}"
+        - import_role:
+            name: ansible-sudoers
+          vars:
+            sudoer_separate_specs: True
+            sudoer_rewrite_sudoers_file: False
+            sudoer_remove_unauthorized_specs: False
+            #Following var is set in the inventory group_vars:
+            #sudoer_specs
+      when: sudoer_specs
+      tags: sudoers

@@ -1,0 +1,64 @@
+# playbook to deploy hdfs crypto zones (using the hdfs-encryption role)
+#
+# Supported playbook vars:
+# - `hosts`: target host or inventory group
+# - `hdfs_encryption_tenant_envs`: the tenant envs variable
+#
+# Supported `hdfs-encryption` role vars:
+# - `hdfs_encryption_zones`: the hdfs encrypted zones
+#
+# Example run:
+# ansible-playbook  deploy-hdfs-crypto-zones.yml  -i $INVENTORY --diff -v
+#
+- hosts: "{{ hosts | default('edge') }}"
+  # gather_facts required for the "ansible_fqdn" fact (required by a kerberos_kinit role var)
+  gather_facts: yes 
+  become: yes
+  run_once: true
+  vars:
+    tenant_envs: "{{ hdfs_encryption_tenant_envs | default([tenant_env_single]) }}"
+    # Following var is set in our group_vars
+    # hdfs_root_user: hdfs
+  tasks:
+    - import_role:
+        name: kerberos_kinit
+      vars:
+        kerberos_kinit_realm: "{{ kerberos_realm }}"
+        kerberos_kinit_user: "{{ hdfs_root_user }}"
+      when: do_kinit | default(True) | bool
+      tags: kinit
+
+    - name: deploying hdfs folders on which the encrypted zones are based
+      block:
+        - include_role:
+            name: deploy-hdp-app
+          vars:
+            deploy_hdfs_dirs: "{{ hdfs_encryption_zones }}"
+            tenant: "{{ item.tenant }}"
+            env: "{{ item.env }}"
+          loop: "{{ tenant_envs }}"
+      run_once: true
+      tags: hdfs-folders
+
+    - name: deploying encrypted zones
+      block:
+        - include_role:
+            name: hdfs-encryption
+          vars:
+            tenant: "{{ item.tenant }}"
+            env: "{{ item.env }}"
+          loop: "{{ tenant_envs }}"
+      run_once: true
+      tags: hdfs-crypto-zones
+
+    - name: deploying hdfs folders *inside* the encrypted zones
+      block:
+        - include_role:
+            name: deploy-hdp-app
+          vars:
+            deploy_hdfs_dirs: "{{ hdfs_encryption_zone_dirs }}"
+            tenant: "{{ item.tenant }}"
+            env: "{{ item.env }}"
+          loop: "{{ tenant_envs }}"
+      run_once: true
+      tags: hdfs-crypto-zone-dirs

@@ -1,0 +1,28 @@
+# playbook to deploy the kerberos principal and keytab for users (or hosts)
+#
+# Supported vars:
+# - `hosts`: target host or inventory group
+# - 'principals`: list of user principals, where each element must be a dict containing a key 'username'
+#
+# Example run for a list of users:
+# ansible-playbook  deploy-users-kerberos.yml  -i $INVENTORY --diff -v
+#
+# Example run for a single user(name) provided as an extra variable username
+# ansible-playbook  deploy-users-kerberos.yml  -i $INVENTORY --diff -v -e username=lhoss
+
+- hosts: "{{ hosts | default('edge') }}"
+  # gather_facts required for the "ansible_fqdn" fact (required by a kerberos_principals role var)
+  gather_facts: yes
+  become: yes
+  tasks:
+    - name: deploying the kerberos principals and keytabs
+      block:
+        - import_role:
+            name: kerberos_principals
+          vars:
+            kerberos_principal_listprincs: True
+            kerberos_principal_realm: "{{ kerberos_realm }}"
+            kerberos_principal_principals: "{{ (username is defined) | ternary([ {'username': username} ], kerberos_principals | default([]) ) }}"
+            #kerberos_principal_principals: "{{ _kerberos_principals_host }}"
+            #kerberos_principal_principals: "{{ _kerberos_principals_testusers }}"
+      tags: kerberos-principals

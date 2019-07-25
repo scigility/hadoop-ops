@@ -1,0 +1,30 @@
+[submodule "ansible-hortonworks"]
+	path = ansible-hortonworks
+	url = git@github.com:scigility/ansible-hortonworks.git
+[submodule "ansible/roles_ext_pub/ranger_modules"]
+	path = ansible/roles_ext_pub/ranger_modules
+	url = https://github.com/scigility/ranger_modules.git
+[submodule "ansible/roles_ext_pub/ansible-role-postgresql"]
+	path = ansible/roles_ext_pub/ansible-role-postgresql
+	url = https://github.com/scigility/ansible-role-postgresql.git
+[submodule "ansible/roles_ext_pub/ansible-users"]
+	path = ansible/roles_ext_pub/ansible-users
+	url = git@github.com:scigility/ansible-users.git
+[submodule "ansible/roles_ext_pub/ansible-sudoers"]
+	path = ansible/roles_ext_pub/ansible-sudoers
+	url = git@github.com:scigility/ansible-sudoers.git
+[submodule "ansible/roles_ext_pub/kerberos_server"]
+	path = ansible/roles_ext_pub/kerberos_server
+	url = git@github.com:scigility/kerberos_server.git
+[submodule "cloudera-playbook"]
+	path = cloudera-playbook
+	url = git@github.com:scigility/cloudera-playbook.git
+[submodule "prereq-checks"]
+	path = prereq-checks
+	url = git@github.com:scigility/prereq-checks.git
+[submodule "ansible/roles_ext_pub/kerberos_principals"]
+	path = ansible/roles_ext_pub/kerberos_principals
+	url = git@github.com:scigility/kerberos_principals.git
+[submodule "ansible/roles_ext_pub/kerberos_kinit"]
+	path = ansible/roles_ext_pub/kerberos_kinit
+	url = git@github.com:scigility/kerberos_kinit.git
