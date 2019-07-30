@@ -34,6 +34,13 @@ deploy_app_jars: []
 
 deploy_app_directories: []
 
-deploy_hdfs_dirs: []
 
 deploy_remote_fs_files: []
+
+## Defaults of the "deploy-hdfs-dirs" include
+deploy_hdfs_dirs: []
+hdfs_dir_default_become_user: "{{ hdfs_root_user }}"
+# following role default vars are undefined, thus commented out
+# hdfs_dir_default_owner: 
+# hdfs_dir_default_mode: 
+# hdfs_dir_default_acl: 
