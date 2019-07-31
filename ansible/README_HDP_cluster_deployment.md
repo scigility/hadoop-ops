@@ -2,7 +2,6 @@ HDP cluster deployment using the external ansible-hortonworks role
 ---
 
 ## Prerequisites
-There is included env.sh script, which use virtualenv to install ansible and dependencies in proper versions.
 
 ### Submodule: external ansible role
 The Role (later referenced as 'HWX role'): https://github.com/scigility/ansible-hortonworks
@@ -12,37 +11,35 @@ The role is provisioned automatically as a git submodule.
 
 ### ansible
 You need ansible (version >2.5.x) and some other python modules:
-* boto (for AWS deployments)
-* jinja2 >=v2.10 (older versions will not work, instead you will get strange errors during the dynamic blueprint template resolution task)
+* boto, boto3 (for AWS deployments)
+* jinja2 >=v2.10 (automatically installed as part of the ansible dependencies)
 
-Best is to use the provided `env.sh` for that.
 The deployment was tested with following ansible versions:
-* v2.6.3
 * v2.6.4
+* v2.7.11
+* v2.8.1
 
-### The vault_password_file
-Some of the (inventory) group_vars files (usually named *secrets*.yml) might be vault encrypted.
-For ansible-vault to be able to automatically decrypt these files, you need to have the vault password contained in following file:
-
-    vim ~/.vault_pass_scigility_platform.txt
-
-Note: Ask in our Platform channel for the vault password (as we cannot add it to git)
-Hint: Password starts with Ans...
-More infos: https://docs.ansible.com/ansible/2.5/user_guide/playbooks_vault.html
 
 ## Configuration
-The complete config is managed in (in ansible called) inventory group_vars.
+The complete config is best managed in (in ansible called) inventory group_vars.
 Each deployed cluster will have it's own inventory (folder).
-p.eg inventory/hdp301static contains the config for cluster 'hdp301static'
+In the following example, we assume to have the inventory folder: inventory/hdp3demo  (for a cluster named 'hdp3demo')
 
 Quick explanation why the cfg needs to be in group_vars/*all* (where 'all' is the special group, used for any host)
 Indeed group_vars/*ec2* works 'almost' (ec2 being a group with all ec2 hosts created),
-but the problem is the role (set_variables.yml playbook) also requires 'localhost' to see our vars.
+but the problem is the role (set_variables.yml playbook) runs task under 'host: localhost' (and usually 'localhost' will not be part of your cluster inventory, unless you explicitly add it,  OR you use the group 'all' which contains all hosts incl. localhost)
 
 Following documents the ansible config files to be done, and the central parameters.
-Note: The easiest is to start a new cluster config, copy&pasting the cfg from an existing inventory
+Note: The easiest is to start a new cluster config, copy&pasting the cfg from an existing inventory.
+
+If no existing inventory, you have to base your configs from the original HWX repo:
+* hdp-aws.yml: containing all configs *only* required during build_cloud (creating the AWS/cloud cluster). 
+  * Template: https://github.com/scigility/ansible-hortonworks/blob/master/inventory/aws/group_vars/all#L26 
+* hdp.yml:  containing all other configs req. by the HWX HDP/HDF deployment
+  * Template: https://github.com/scigility/ansible-hortonworks/blob/master/playbooks/group_vars/all  
 
 ### inventory/xxx/group_vars/hdp-aws.yml
+Main configs to check:
 ```
 region: 'eu-west-1'
 zone: 'eu-west-1a'
@@ -55,20 +52,19 @@ image: ami-2a7d75c0     # AMI id varies between regions.
 ```
 
 ### inventory/xxx/group_vars/hdp.yml
+Main configs to check:
 ```
 cluster_name: '......'
-ambari_admin_password: 'scty!admin'         # the password for the Ambari admin user
+ambari_admin_password: 'xyz...'         # the password for the Ambari admin user
 ```
 
 ## Deployment
 
 ### Deployment to AWS
 
-Following shows the commands used for the deployment of cluster named  `hdp3demov3` (that has its config in the equally named inventory folder).
+Following shows the commands used for the deployment of cluster named  `hdp3demo` (that has its config in the equally named inventory folder).
 
 ```
-# Create virtualenv and install dependencies:
-./env.sh
 # ENV required for a deployment to the cloud:
 export CLOUD_TO_USE=aws
 # Example ENVs required for an AWS deployment:
@@ -76,10 +72,10 @@ export AWS_ACCESS_KEY_ID='.....'
 export AWS_SECRET_ACCESS_KEY='...'
 
 # script to deploy the cloud (VPC etc and the nodes)
-./build_cloud.sh -i inventory/hdp301static -vv
+./build_cloud.sh -i inventory/hdp3demo -vv
 
 # deploy Ambari incl. (first) pre-requisites, the ambari server, finally apply the blueprint
-./install_cluster.sh -vv -i inventory/hdp301static
+./install_cluster.sh -vv -i inventory/hdp3demo
 
 ```
 ### Deployment to other clouds
@@ -88,7 +84,7 @@ Disclaimer: As we haven't yet tested on other cloud providers (from this repo), 
 
 ### Deployment using a static inventory
 First check the original Doc: https://github.com/hortonworks/ansible-hortonworks/blob/master/INSTALL_static.md
-In this case the inventory hosts must be defined manually in a file (see p.eg the config in `hdp301static`).
+In this case the inventory hosts must be defined manually in a file (see p.eg the config in `hdp3demo`).
 Notes:
 * The 'static' method can also be used for a cluster in the cloud (`build_cloud.sh` also useful!), which can be useful to test a config before doing the 'real' deployment on bare-metal nodes.
 * The `hdp-aws.yml` config is not required by the installation (it was only used by `build_cloud.sh`), but is still useful to keep to allow for changes in the AWS configs like to update the security-groups (using the same playbook behind `build_cloud.sh`)
@@ -96,11 +92,11 @@ Notes:
 Commands used:
 ```
 # need to override the cloud_name param (to aws), because in our config it's set to `static` ()
-./build_cloud.sh -vv -i inventory/hdp301static -e cloud_name=aws
+./build_cloud.sh -v -i inventory/hdp3demo -e cloud_name=aws
 
 # Note: The install cmd looks exactly the same (as for AWS) .. the
  cluster is deployed using the static inventory strategy:
-./install_cluster.sh -vv -i inventory/hdp301static
+./install_cluster.sh -v -i inventory/hdp3demo
 ```
 
 ### Offline deployment
