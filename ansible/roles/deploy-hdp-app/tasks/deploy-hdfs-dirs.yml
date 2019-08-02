@@ -30,6 +30,10 @@
       command: "hdfs dfs -chmod {{ dir_mode }} {{ dir.name }}"
       when: dir_mode != ''
 
+    - name: run raw ACL cmd on the hdfs dir {{ dir.name }}
+      command: "hdfs dfs -setfacl {{ dir.setfacl_raw }} {{ dir.name }}"
+      when: dir.setfacl_raw is defined and (dir.setfacl_raw != '')
+
     - name: set the ACL of the hdfs dir {{ dir.name }}
       command: "hdfs dfs -setfacl --set {{ dir_acl }} {{ dir.name }}"
       when: dir_acl != ''
