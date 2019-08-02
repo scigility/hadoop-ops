@@ -37,7 +37,6 @@
             tenant: "{{ item.tenant }}"
             env: "{{ item.env }}"
           loop: "{{ tenant_envs }}"
-      run_once: true
       tags: hdfs-folders
 
     - name: deploying encrypted zones
@@ -48,7 +47,6 @@
             tenant: "{{ item.tenant }}"
             env: "{{ item.env }}"
           loop: "{{ tenant_envs }}"
-      run_once: true
       tags: hdfs-crypto-zones
 
     - name: deploying hdfs folders *inside* the encrypted zones
@@ -60,5 +58,4 @@
             tenant: "{{ item.tenant }}"
             env: "{{ item.env }}"
           loop: "{{ tenant_envs }}"
-      run_once: true
       tags: hdfs-crypto-zone-dirs
