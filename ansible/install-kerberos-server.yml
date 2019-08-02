@@ -1,0 +1,10 @@
+## playbook to deploy the kerberos server  using the public ansible(galaxy) role ultratendency/kerberos_server
+## See our github fork: https://github.com/scigility/kerberos_server
+#
+- hosts: "{{ hosts | default('all') }}"
+  gather_facts: yes
+  become: yes
+  #run_once: true
+  roles:
+    - role: kerberos_server
+   #- role: ../../kerberos_server

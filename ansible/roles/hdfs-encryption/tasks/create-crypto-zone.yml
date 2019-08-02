@@ -1,0 +1,23 @@
+---
+- block:
+    # This task block assumes the hdfs dir exists  on which the zone is to be created
+    - name: Check if zone hdfs dir exists {{ zone.name }}
+      command: "hdfs dfs -test -d {{ zone.name }}"
+      register: dir_check
+      failed_when: dir_check.rc not in [0,1]
+      changed_when: dir_check.rc == 1
+      check_mode: no
+
+    # TODO we could explicitly check if the zone dir is empty, else the crypto zone fails
+
+    # Set changed_when=false  in case zone exists (on msg "Directory /xxx is already an encryption zone.")
+    # Note rc="2" is returned for various errors (incl. above case)
+    - name: create the crypto zone  {{ zone.name }}
+      shell: "hdfs crypto -createZone -keyName {{ zone.keyname }} -path {{ zone.name }}"
+      register: rc_createZone
+      failed_when: rc_createZone.rc == 2 and not (rc_createZone.stderr | regex_search('is already an encryption zone'))
+      changed_when: rc_createZone.rc != 2 or not (rc_createZone.stderr | regex_search('is already an encryption zone'))
+
+  # Note: Sudo as non-root user (using the root's passwd) might require tricks with become_exe (see inventory vars)
+  become: yes
+  become_user: "{{ hdfs_encryption_user }}"

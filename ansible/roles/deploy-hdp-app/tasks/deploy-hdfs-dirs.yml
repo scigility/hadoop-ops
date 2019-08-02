@@ -1,0 +1,39 @@
+---
+## Self-contained include tasks (independent of the role) to deploy a dir on HDFS (using shell commands)
+## Include parameters:
+## - "dir": a dictionary containing a "name" key and optional keys (mode,owner,acl,become_user)
+- set_fact:
+    dir_owner: "{{ dir.owner | default(hdfs_dir_default_owner) | default('') }}"
+    dir_mode: "{{ dir.mode | default(hdfs_dir_default_mode) | default('') }}"
+    dir_acl: "{{ dir.acl | default(hdfs_dir_default_acl) | default('') }}"
+    dir_become_user: "{{ dir.become_user | default(hdfs_dir_default_become_user) }}"
+  tags: always
+
+- block:
+    - name: exists the hdfs dir {{ dir.name }}
+      command: "hdfs dfs -test -d {{ dir.name }}"
+      register: dir_check
+      failed_when: dir_check.rc not in [0,1]
+      changed_when: dir_check.rc == 1
+      check_mode: no
+
+    - name: create the hdfs dir {{ dir.name }}
+      command: "hdfs dfs -mkdir {{ dir.parent_dirs|default(False)|ternary('-p','') }} {{ dir.name }}"
+      when: dir_check.rc is defined and  dir_check.rc == 1
+      changed_when: True
+
+    - name: chown the hdfs dir {{ dir.name }}
+      command: "hdfs dfs -chown {{ dir_owner }} {{ dir.name }}"
+      when: dir_owner != ''
+
+    - name: chmod the hdfs dir {{ dir.name }}
+      command: "hdfs dfs -chmod {{ dir_mode }} {{ dir.name }}"
+      when: dir_mode != ''
+
+    - name: set the ACL of the hdfs dir {{ dir.name }}
+      command: "hdfs dfs -setfacl --set {{ dir_acl }} {{ dir.name }}"
+      when: dir_acl != ''
+      check_mode: no
+
+  become: yes
+  become_user: "{{ dir_become_user }}"

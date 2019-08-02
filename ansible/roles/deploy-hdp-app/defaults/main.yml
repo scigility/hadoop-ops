@@ -1,0 +1,46 @@
+---
+# need a local intermediary directory before deploying/copying the files to hdfs
+# Note: user_id will be 'root' when using 'become=yes'
+
+# allowed types: hdfs, fs (local fs)
+deploy_fs_type: hdfs
+
+deploy_stage_dir: "/tmp/deploy_staging_dir"
+deploy_old_to_stage: no
+deploy_new_to_stage: yes
+deploy_to_hdfs: yes
+# if 'true' deployment to hdfs  will use '-put -f' to allow overwriting an existing file
+deploy_to_hdfs_force: yes
+
+# optional hdfs destination dir (by default 'undefined', that's why it must be commented!)
+# If set, it must contain an existing hdfs dir with a trailing '/', useful to deploy long list of files
+#deploy_hdfs_dst_dir:
+
+# the hdfs root user (default 'hdfs') used as the 'become_user' for the hdfs dir deploy tasks
+hdfs_root_user: hdfs
+
+# the optional deploy_app dictionary is forwarded as variable `app` (can be used in templated configs)
+deploy_app: {}
+
+deploy_app_config_files: []
+# the deploy_app_config_files is a list of dicts with following keys
+#    use_template: yes/no
+#    src_file: templates/application.default.conf
+#    hdfs_dst_file: "{{ hdfs_base_dir }}/conf/application.default.conf"
+#    hdfs_user:  <optional, default the deployment user>
+#    mode:  <optional, default "0644">
+
+deploy_app_jars: []
+
+deploy_app_directories: []
+
+
+deploy_remote_fs_files: []
+
+## Defaults of the "deploy-hdfs-dirs" include
+deploy_hdfs_dirs: []
+hdfs_dir_default_become_user: "{{ hdfs_root_user }}"
+# following role default vars are undefined, thus commented out
+# hdfs_dir_default_owner: 
+# hdfs_dir_default_mode: 
+# hdfs_dir_default_acl: 

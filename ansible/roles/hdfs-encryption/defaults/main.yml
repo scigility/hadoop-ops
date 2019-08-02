@@ -1,0 +1,8 @@
+---
+# the hdfs root user (default 'hdfs') used as the 'become_user' for the hdfs dir deploy tasks
+hdfs_encryption_user: hdfs
+
+#deploy_hdfs_dirs: []
+hdfs_encryption_zones: []
+
+hdfs_encryption_listZones: False

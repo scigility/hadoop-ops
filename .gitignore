@@ -1,0 +1,12 @@
+.env
+.vscode
+*.ipr
+*.iws
+*.iml
+*.tar
+*.gz
+*.zip
+*.bkup
+*.retry
+*.jar
+ansible/.python-env/*

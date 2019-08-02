@@ -1,0 +1,8 @@
+galaxy_info:
+  author: Laurent Hoss
+  description: deployment of HDFS enrypted zones (using hdfs crypto cmds)
+  company: Scigility AG
+  license: MIT
+  min_ansible_version: 2.5
+
+dependencies: []

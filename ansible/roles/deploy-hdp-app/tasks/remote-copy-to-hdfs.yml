@@ -1,0 +1,10 @@
+---
+
+# Note: Following block is the same logic as the 'deploy_to_hdfs' from the the 'deploy-to-hdfs.yml' tasks file
+- block:
+    - name: deploy to hdfs {{hdfs_dst_file}}
+      command: "hdfs dfs -put {{ '-f' if deploy_to_hdfs_force }} {{ remote_src_file }} {{ hdfs_dst_file }}"
+  # Note: Sudo as non-root user (using the root's passwd) might require tricks with become_exe (see inventory vars)
+  become: "{{ ((hdfs_deploy_user | default('')) != '') | ternary('yes','no') }}"
+  become_user: "{{ hdfs_deploy_user | default('omit') }}"
+  when: file.deploy_to_hdfs | default(deploy_to_hdfs)|bool

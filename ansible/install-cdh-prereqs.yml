@@ -1,0 +1,24 @@
+---
+- name: Apply the common role 
+  hosts: all
+  any_errors_fatal: true
+  become: yes
+  tasks:
+  - name: manage users
+    include_role:
+      name: ../ansible-hortonworks/playbooks/roles/common
+      # or use ensure its found in ansible.cfg roles path:
+      #name: common
+      vars_from: "redhat-7.yml"
+      # Alternatively we can include those vars on 'default' variable-preceedence (allows overriding in group_vars)
+      # In that case just ensure the only (role) default var (`swappiness`) is set explicitly
+      #defaults_from: "../vars/redhat-7.yml"
+    vars:
+      swappiness: 1
+      external_dns: True 
+      disable_firewall: yes
+      timezone: UTC
+      java: "openjdk"
+      is_vm_docker_containers: False
+      security: none
+    tags: common

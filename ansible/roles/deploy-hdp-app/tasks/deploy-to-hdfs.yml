@@ -1,0 +1,57 @@
+---
+- block:
+  - set_fact:
+      hdfs_dst_file: "{{ _hdfs_dst_file }}"
+      remote_src_file: "{{ deploy_stage_dir }}/{{ _hdfs_dst_file | basename }}"
+      hdfs_deploy_user: "{{ file.hdfs_file_owner | default(hdfs_file_owner) | default() }}"
+  vars:
+    _hdfs_dst_file1: "{{ file.hdfs_dst_file | default(deploy_hdfs_dst_dir) | mandatory }}"
+    _hdfs_dst_file: "{{ _hdfs_dst_file1 + ( _hdfs_dst_file1.endswith('/') | ternary(file.src_file|basename, '') ) }}"
+  tags: always
+
+
+# 1. phase 'deploy_old_to_stage'
+# This is useful to get the real 'diff' between the latest file in hdfs and the new one
+- block:
+  # need to clean any existing tmp_file before the hdfs copyToLocal (does not support -f(orce) flag)
+    - name: clean existing stage file before hdfs get/copyToLocal
+      file:
+        path: "{{ remote_src_file }}"
+        state: absent
+    - name: pre copy existing file from hdfs to the the stage folder {{ deploy_stage_dir }}
+      command: "hdfs dfs -copyToLocal {{ hdfs_dst_file }} {{ deploy_stage_dir }}/"
+#      check_mode: no
+  when: file.deploy_old_to_stage | default(deploy_old_to_stage)
+
+
+# 2. phase 'deploy_new_to_stage'
+- block:
+    - name: deploy template {{ file.src_file }} to the stage folder
+      template:
+        src: "{{ file.src_file }}"
+        dest: "{{ remote_src_file | dirname  }}"
+        mode: "{{ file.mode | default('omit') }}"
+      when: use_template
+    - name: deploy file {{ file.src_file }} to the stage folder
+      copy:
+        src: "{{ file.src_file }}"
+        dest: "{{ remote_src_file | dirname  }}"
+        mode: "{{ file.mode | default('omit') }}"
+      when: not use_template
+  vars:
+    use_template: "{{ file.use_template | default(deploy_template) | default(False) }}"
+  when: file.deploy_new_to_stage | default(deploy_new_to_stage)
+
+
+# 3. phase 'deploy_to_hdfs'
+- block:
+    - name: deploy to hdfs {{hdfs_dst_file}}
+      command: "hdfs dfs -put {{ '-f' if deploy_to_hdfs_force }} {{ remote_src_file }} {{ hdfs_dst_file | dirname  }}"
+# Note: hdfs -chown is not required  when the -put cmd is run as the final user
+#    - name: set owner/group on {{hdfs_dst_file}}
+#      command: "hdfs dfs -chown  {{ hdfs_deploy_user }} {{ hdfs_dst_file }}"
+#      when: hdfs_deploy_user | default(False)
+  # Note: Sudo as non-root user (using the root's passwd) might require tricks with become_exe (see inventory vars)
+  become: "{{ ((hdfs_deploy_user | default('')) != '') | ternary('yes','no') }}"
+  become_user: "{{ hdfs_deploy_user | default('omit') }}"
+  when: file.deploy_to_hdfs | default(deploy_to_hdfs)|bool

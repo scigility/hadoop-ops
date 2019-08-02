@@ -1,0 +1,40 @@
+## Playbook to deploy Apache Ranger policies (in an Cloudera HDP cluster)
+## - requires the "ranger_modules" role  (added in this repo via git submodules)
+
+- hosts: "{{ hosts_edge | default ('all') }}"
+  vars:
+    ranger_admin_url: "{{ inventory_hostname }}:6080"
+    #following are expected to be set in group_vars (files hdp*)
+    #ranger_admin_username: admin
+    #ranger_admin_password: admin
+
+  roles:
+  - ranger_modules
+
+  post_tasks:
+    - ranger_hdfs_policies:
+        state: present
+        admin_url: "{{ ranger_admin_url }}"
+        admin_username: "{{ ranger_admin_username }}"
+        admin_password: "{{ ranger_admin_password }}"
+        policies: "{{ ranger_hdfs_policies }}"
+      when: ranger_hdfs_policies is defined
+      tags: ranger_hdfs_policies
+
+    - ranger_hive_policies:
+        state: present
+        admin_url: "{{ ranger_admin_url }}"
+        admin_username: "{{ ranger_admin_username }}"
+        admin_password: "{{ ranger_admin_password }}"
+        policies: "{{ ranger_hive_policies }}"
+      when: ranger_hive_policies is defined
+      tags: ranger_hive_policies
+
+    - ranger_yarn_policies:
+        state: present
+        admin_url: "{{ ranger_admin_url }}"
+        admin_username: "{{ ranger_admin_username }}"
+        admin_password: "{{ ranger_admin_password }}"
+        policies: "{{ ranger_yarn_policies }}"
+      when: ranger_yarn_policies is defined
+      tags: ranger_yarn_policies
