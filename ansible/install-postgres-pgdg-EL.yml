@@ -4,6 +4,14 @@
 - hosts: all
   gather_facts: true
   become: yes
+  vars:
+    postgresql_hba_entries_default:
+      - { type: local, database: all, user: postgres, auth_method: peer }
+      - { type: local, database: all, user: all, auth_method: peer }
+      - { type: host, database: all, user: all, address: '127.0.0.1/32', auth_method: md5 }
+      - { type: host, database: all, user: all, address: '::1/128', auth_method: md5 }
+    postgresql_hba_allow_all_ips_on_all_dbs: 
+      - {type: host, database: "*", user: "*", address: "0.0.0.0/0", auth_method: md5}
 
   pre_tasks:
     #TODO: Make the repo installation optional (in case we do an offline install)
@@ -11,6 +19,15 @@
       yum:
         name: https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-centos96-9.6-3.noarch.rpm
         state: present
+    ## Notes about the 'postgresql_hba_entries' variable:
+    ## If the var is empty, the role skips configuring the pg_hba.conf (thus it keeps the existing/default conf)
+    ## If the var is set, ensure to give ALL the entries, because the config gets rewritten with only the provided rules
+    - debug: 
+        var: postgresql_hba_entries
+    - set_fact:
+        postgresql_hba_entries: "{{ postgresql_hba_entries_default + postgresql_hba_allow_all_ips_on_all_dbs }}"
+      #TODO had to disable the check, because it seems  it takes the role defaults here (unexpected for me!) 
+      #when: (postgresql_hba_entries | default([])) == []
 
   roles:
     #- name: geerlingguy.postgresql
@@ -32,5 +49,3 @@
           value: "*"
         - option: max_connections
           value: "500" 
-      # Important, set following empty, so the role skips its pg_hba.conf task (which by default resets that conf)
-      postgresql_hba_entries: []
