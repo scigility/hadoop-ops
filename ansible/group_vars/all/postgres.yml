@@ -1,14 +1,14 @@
 ## This config contains our default postgres config vars
 
+## Note: Commented out below vars, as they are not valid in all cases (for ex. inconsitent when using rh-postgres SCL repo!)
 # 1. Vars used by our role postgres-mgmt, derived from (a subset of) github.com/geerlingguy/ansible-role-postgresql
-postgresql_version: 9.6
-postgresql_daemon: postgresql-{{postgresql_version}}
-postgresql_data_directory: "/var/lib/pgsql/{{postgresql_version}}/data"
-#postgres_hba_file: "{{ postgresql_data_directory }}/pg_hba.conf"
+# postgresql_version: 9.6
+# postgresql_daemon: postgresql-{{postgresql_version}}
+# postgresql_data_directory: "/var/lib/pgsql/{{postgresql_version}}/data"
 
 # 2. Vars used in ansible-hortonworks 'database' role (that are however overriden by higher priority 'include_vars' )
 # So below is more for documenting and to make clear what vars  should be aligned between roles.
 # Ensure this aligned with the ansible-hortonworks (OS include) var `postgres_version`
-postgres_version: "{{ postgresql_version }}"
-postgres_service_name: "{{ postgresql_daemon }}"
-postgres_data_directory: "{{ postgresql_data_directory }}"
+postgres_version: 9.6
+postgres_service_name: postgresql-{{postgresql_version}}
+postgres_data_directory: "/var/lib/pgsql/{{postgresql_version}}/data"
