@@ -1,0 +1,49 @@
+## Playbook to install postgresql 9.6 from the offical postgres (pgdg) repo using `geerlingguy.postgresql` role
+#
+# Notes:
+# - the role is expected to be in a configured role path (usually added via git submodule)
+# - the target server host should not run selinux (in mode enforcing), as this might create issues
+#
+- hosts: all
+  gather_facts: true
+  become: yes
+  vars:
+    postgresql_hba_entries_default:
+      - { type: local, database: all, user: postgres, auth_method: peer }
+      - { type: local, database: all, user: all, auth_method: peer }
+      - { type: host, database: all, user: all, address: '127.0.0.1/32', auth_method: md5 }
+      - { type: host, database: all, user: all, address: '::1/128', auth_method: md5 }
+    postgresql_hba_allow_all_ips_on_all_dbs: 
+      - {type: host, database: all, user: all, address: "0.0.0.0/0", auth_method: md5}
+
+  pre_tasks:
+    # More infos on the "rh-postgresql96" SCL: https://www.softwarecollections.org/en/scls/rhscl/rh-postgresql96/
+    - name: Enable RH SCL (Software Collections) on CentOS
+      yum:
+        name: centos-release-scl-rh
+        state: present
+      when: ansible_distribution == 'CentOS'
+
+  roles:
+    # Note: This requires the role contains the feature from PR: https://github.com/geerlingguy/ansible-role-postgresql/pull/96
+    - name: ansible-role-postgresql
+      # Note: It also works without explicilty enabling the repo
+      #postgresql_enablerepo: "centos-sclo-rh"
+      postgresql_version: 9.6
+      postgresql_scl_version: 96
+      postgresql_use_scl: true
+      postgresql_global_config_options:
+        - option: listen_addresses
+          value: "*"
+        - option: max_connections
+          value: "500" 
+      postgresql_hba_entries: "{{ postgresql_hba_entries_default + postgresql_hba_allow_all_ips_on_all_dbs }}"
+      ## Note: When install postgres on same node than ambari-server, to avoid pkg conflicts, disable 2 *syspaths packages:
+      postgresql_packages:
+      # - rh-postgresql96-postgresql-syspaths
+      # - rh-postgresql96-postgresql-server-syspaths
+        - rh-postgresql96-postgresql
+        - rh-postgresql96-postgresql-server
+        - rh-postgresql96-postgresql-contrib-syspaths
+        - rh-postgresql96-postgresql-libs
+      postgresql_daemon: rh-postgresql96-postgresql
