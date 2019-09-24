@@ -1,13 +1,33 @@
-## This config contains our default postgres config vars
+### This config contains our default postgres config vars
+## Vars used by (our fork of) role github.com/geerlingguy/ansible-role-postgresql
 
 ## Note: Commented out below vars, as they are not valid in all cases (for ex. inconsitent when using rh-postgres SCL repo!)
-# 1. Vars used by our role postgres-mgmt, derived from (a subset of) github.com/geerlingguy/ansible-role-postgresql
 # postgresql_version: 9.6
 # postgresql_daemon: postgresql-{{postgresql_version}}
 # postgresql_data_directory: "/var/lib/pgsql/{{postgresql_version}}/data"
 
-# 2. Vars used in ansible-hortonworks 'database' role (that are however overriden by higher priority 'include_vars' )
-# So below is more for documenting and to make clear what vars  should be aligned between roles.
+postgresql_global_config_options:
+  - option: listen_addresses
+    value: "*"
+  - option: max_connections
+    value: "500" 
+
+## Notes about the 'postgresql_hba_entries' role variable:
+# If the var is empty, the role skips configuring the pg_hba.conf (thus it keeps the existing/default conf)
+# If the var is set, ensure to give ALL the entries, because the config gets rewritten with only the provided rules
+postgresql_hba_entries: "{{ postgresql_hba_entries_default + postgresql_hba_allow_all_ips_on_all_dbs }}"
+
+# Re-usable custom intermediary vars:
+postgresql_hba_entries_default:
+  - { type: local, database: all, user: postgres, auth_method: peer }
+  - { type: local, database: all, user: all, auth_method: peer }
+  - { type: host, database: all, user: all, address: '127.0.0.1/32', auth_method: md5 }
+  - { type: host, database: all, user: all, address: '::1/128', auth_method: md5 }
+postgresql_hba_allow_all_ips_on_all_dbs: 
+  - {type: host, database: all, user: all, address: "0.0.0.0/0", auth_method: md5}
+
+## Vars used in ansible-hortonworks 'database' role (that are however overriden by higher priority 'include_vars' )
+# Thus, below vars are more for documenting and to make clear what vars  should be aligned between roles.
 # Ensure this aligned with the ansible-hortonworks (OS include) var `postgres_version`
 postgres_version: 9.6
 postgres_service_name: postgresql-{{postgresql_version}}

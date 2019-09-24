@@ -1,34 +1,22 @@
 ## Playbook to install postgresql 9.6 from the offical postgres (pgdg) repo using `geerlingguy.postgresql` role
-# The role is expected to be in a configured role path (usually added via git submodule)
-# Note: The target server host should not run selinux (in mode enforcing), as this might create issues
+# Notes:
+# - the role is expected to be in a configured role path (usually added via git submodule)
+# - the target server host should not run selinux (in mode enforcing), as this might create issues
+#
 - hosts: all
   gather_facts: true
   become: yes
-  vars:
-    postgresql_hba_entries_default:
-      - { type: local, database: all, user: postgres, auth_method: peer }
-      - { type: local, database: all, user: all, auth_method: peer }
-      - { type: host, database: all, user: all, address: '127.0.0.1/32', auth_method: md5 }
-      - { type: host, database: all, user: all, address: '::1/128', auth_method: md5 }
-    postgresql_hba_allow_all_ips_on_all_dbs: 
-      - {type: host, database: all, user: all, address: "0.0.0.0/0", auth_method: md5}
-
   pre_tasks:
-    #TODO: Make the repo installation optional (in case we do an offline install)
+    # Note: Deploying below repo only on CentOS, since RHEL usually runs only on customer servers (with centrally managed repositories)
     - name: install PostgreSQL 9.6 repository
       yum:
         name: https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-centos96-9.6-3.noarch.rpm
         state: present
-    ## Notes about the 'postgresql_hba_entries' variable:
-    ## If the var is empty, the role skips configuring the pg_hba.conf (thus it keeps the existing/default conf)
-    ## If the var is set, ensure to give ALL the entries, because the config gets rewritten with only the provided rules
+      when: ansible_distribution == 'CentOS'
     - debug: 
         var: postgresql_hba_entries
-    - set_fact:
-        postgresql_hba_entries: "{{ postgresql_hba_entries_default + postgresql_hba_allow_all_ips_on_all_dbs }}"
-      #TODO had to disable the check, because it seems  it takes the role defaults here (unexpected for me!) 
-      #when: (postgresql_hba_entries | default([])) == []
-
+        verbosity: 1
+        
   roles:
     #- name: geerlingguy.postgresql
     - name: ansible-role-postgresql
@@ -44,8 +32,3 @@
         - postgresql96-libs
         - postgresql96-contrib
         - postgresql96-devel
-      postgresql_global_config_options:
-        - option: listen_addresses
-          value: "*"
-        - option: max_connections
-          value: "500" 

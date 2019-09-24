@@ -76,7 +76,6 @@
       loop: "{{ hdp_databases | dict2items }}"
       loop_control:
         loop_var: db
-      no_log: false
 
     - name: deploy postgres databases
       include_role:
