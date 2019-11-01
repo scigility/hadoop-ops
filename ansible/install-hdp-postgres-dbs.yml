@@ -1,0 +1,90 @@
+## Playbook to deploy the postgres users and databases used for a Cloudera Hortonworks HDP/HDF Setup
+#
+# Notes:
+# - this playbook is only required if you are NOT using the "ansible-hortonworks" "database" role
+# - the playbook assumes postgresql-server was install (via playbook install-postgres-scl-rh.yml)
+# - Using this playbook has following advantages compared to the "ansible-hortonworks" (built-in) "database" role:
+#   - support installing postgres on a different node than the Ambari node
+#   - support to install postgres from RH SCL (software collections) like "rh-postgresql96"
+#
+# Required input vars: 
+# - database_options:  dict matching the format of the 'database_options' var from the ansible-hortonworks repo
+#
+- hosts: all
+  gather_facts: true
+  become: yes
+  vars:
+    hdp_databases:
+      ambari:
+        db_name: "{{ database_options.ambari_db_name }}"
+        db_username: "{{ database_options.ambari_db_username }}"
+        db_password: "{{ database_options.ambari_db_password }}"
+        #db_client_hosts: "{{ inventory_hostname }}"
+      hive:
+        db_name: "{{ database_options.hive_db_name }}"
+        db_username: "{{ database_options.hive_db_username }}"
+        db_password: "{{ database_options.hive_db_password }}"
+        #db_client_hosts: "{{ hiveserver_hosts }}"
+      oozie:
+        db_name: "{{ database_options.oozie_db_name }}"
+        db_username: "{{ database_options.oozie_db_username }}"
+        db_password: "{{ database_options.oozie_db_password }}"
+        #db_client_hosts: "{{ oozie_hosts }}"
+      druid:
+        db_name: "{{ database_options.druid_db_name }}"
+        db_username: "{{ database_options.druid_db_username }}"
+        db_password: "{{ database_options.druid_db_password }}"
+        #db_client_hosts: "{{ druid_hosts }}"
+        db_encoding: 'utf8'
+      superset:
+        db_name: "{{ database_options.superset_db_name }}"
+        db_username: "{{ database_options.superset_db_username }}"
+        db_password: "{{ database_options.superset_db_password }}"
+        #db_client_hosts: "{{ superset_hosts }}"
+        db_encoding: 'utf8'
+      rangeradmin:
+        db_name: "{{ database_options.rangeradmin_db_name }}"
+        db_username: "{{ database_options.rangeradmin_db_username }}"
+        db_password: "{{ database_options.rangeradmin_db_password }}"
+        #db_client_hosts: "{{ rangeradmin_hosts }}"
+      rangerkms:
+        db_name: "{{ database_options.rangerkms_db_name }}"
+        db_username: "{{ database_options.rangerkms_db_username }}"
+        db_password: "{{ database_options.rangerkms_db_password }}"
+        #db_client_hosts: "{{ rangerkms_hosts }}"
+      registry:
+        db_name: "{{ database_options.registry_db_name }}"
+        db_username: "{{ database_options.registry_db_username }}"
+        db_password: "{{ database_options.registry_db_password }}"
+        #db_client_hosts: "{{ registry_hosts }}"
+      streamline:
+        db_name: "{{ database_options.streamline_db_name }}"
+        db_username: "{{ database_options.streamline_db_username }}"
+        db_password: "{{ database_options.streamline_db_password }}"
+        #db_client_hosts: "{{ streamline_hosts }}"
+
+  tasks:
+    - name: deploy postgres users
+      include_role:
+        name: ansible-role-postgresql
+        tasks_from: users
+      vars:
+        postgresql_users:
+          - name: "{{ db.value.db_username  }}" #required; the rest are optional
+            password: "{{ db.value.db_password  }}" # defaults to not set
+            encrypted: yes
+      loop: "{{ hdp_databases | dict2items }}"
+      loop_control:
+        loop_var: db
+
+    - name: deploy postgres databases
+      include_role:
+        name: ansible-role-postgresql
+        tasks_from: databases
+      vars:
+        postgresql_databases:
+          - name: "{{ db.value.db_name }}" # required; the rest are optional
+            owner: "{{ db.value.db_username }}" # defaults to postgresql_user
+      loop: "{{ hdp_databases | dict2items }}"
+      loop_control:
+        loop_var: db

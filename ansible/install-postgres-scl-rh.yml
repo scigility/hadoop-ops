@@ -1,0 +1,40 @@
+## Playbook to install postgresql 9.6 from a Red Hat SCL repository using `geerlingguy.postgresql` role
+#
+# Notes:
+# - the role is expected to be in a configured role path (usually added via git submodule)
+# - the target server host should not run selinux (in mode enforcing), as this might create issues
+#
+- hosts: all
+  gather_facts: true
+  become: yes
+  pre_tasks:
+    # More infos on the "rh-postgresql96" SCL: https://www.softwarecollections.org/en/scls/rhscl/rh-postgresql96/
+    - name: Enable RH SCL (Software Collections) on CentOS
+      yum:
+        name: centos-release-scl-rh
+        state: present
+      when: ansible_distribution == 'CentOS'
+    - debug: 
+        var: postgresql_hba_entries
+        verbosity: 1
+
+  roles:
+    # Note: This requires the role contains the feature from PR: https://github.com/geerlingguy/ansible-role-postgresql/pull/96
+    - name: ansible-role-postgresql
+      # Note: It also works without explicilty enabling the repo
+      #postgresql_enablerepo: "centos-sclo-rh"
+      postgresql_version: 9.6
+      postgresql_scl_version: 96
+      postgresql_use_scl: true      
+      ## Note: When install postgres on same node than ambari-server, to avoid pkg conflicts, disable 2 *syspaths packages:
+      postgresql_packages:
+      # - rh-postgresql96-postgresql-syspaths
+      # - rh-postgresql96-postgresql-server-syspaths
+        - rh-postgresql96-postgresql
+        - rh-postgresql96-postgresql-server
+        - rh-postgresql96-postgresql-contrib-syspaths
+        - rh-postgresql96-postgresql-libs
+      postgresql_daemon: rh-postgresql96-postgresql      
+      postgresql_bin_path: /opt/rh/rh-postgresql96/root/usr/bin
+      #postgresql_global_config_options:  # configured in group_vars
+      #postgresql_hba_entries:   # configured in group_vars

@@ -1,17 +1,22 @@
 ## Playbook to install postgresql 9.6 from the offical postgres (pgdg) repo using `geerlingguy.postgresql` role
-# The role is expected to be in a configured role path (usually added via git submodule)
-# Note: The target server host should not run selinux (in mode enforcing), as this might create issues
+# Notes:
+# - the role is expected to be in a configured role path (usually added via git submodule)
+# - the target server host should not run selinux (in mode enforcing), as this might create issues
+#
 - hosts: all
   gather_facts: true
   become: yes
-
   pre_tasks:
-    #TODO: Make the repo installation optional (in case we do an offline install)
+    # Note: Deploying below repo only on CentOS, since RHEL usually runs only on customer servers (with centrally managed repositories)
     - name: install PostgreSQL 9.6 repository
       yum:
         name: https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-centos96-9.6-3.noarch.rpm
         state: present
-
+      when: ansible_distribution == 'CentOS'
+    - debug: 
+        var: postgresql_hba_entries
+        verbosity: 1
+        
   roles:
     #- name: geerlingguy.postgresql
     - name: ansible-role-postgresql
@@ -27,10 +32,3 @@
         - postgresql96-libs
         - postgresql96-contrib
         - postgresql96-devel
-      postgresql_global_config_options:
-        - option: listen_addresses
-          value: "*"
-        - option: max_connections
-          value: "500" 
-      # Important, set following empty, so the role skips its pg_hba.conf task (which by default resets that conf)
-      postgresql_hba_entries: []
