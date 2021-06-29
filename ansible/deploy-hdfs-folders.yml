@@ -21,8 +21,23 @@
       vars:
         kerberos_kinit_realm: "{{ kerberos_realm }}"
         kerberos_kinit_user: "{{ hdfs_root_user }}"
-      when: do_kinit | default(True) | bool
+      when:
+       - kerberos_realm is defined
+       - do_kinit | default(True) | bool
       tags: kinit
+
+
+    - name: deploying hdfs folders for all tenants
+      block:
+        - name: deploying hdfs base folders
+          include_role:
+            name: deploy-hdp-app
+          vars:
+            deploy_hdfs_dirs: "{{ hdfs_folders }}"
+            tenant: "{{ item.tenant }}"
+          loop: "{{ hdfs_folder_tenants }}"
+      tags: hdfs-folders
+      when: hdfs_folder_tenants is defined
 
     - name: deploying hdfs folders for all tenants
       block:

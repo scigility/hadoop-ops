@@ -1,7 +1,8 @@
 ## Playbook to deploy Apache Ranger policies (in an Cloudera HDP cluster)
 ## - requires the "ranger_modules" role  (added in this repo via git submodules)
 
-- hosts: "{{ hosts_edge | default ('all') }}"
+- hosts: "{{ hosts | default('edge') }}"
+  run_once: true
   vars:
     ranger_admin_url: "{{ inventory_hostname }}:6080"
     #following are expected to be set in group_vars (files hdp*)
