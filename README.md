@@ -1,6 +1,12 @@
 # hadoop-ops
 Ansible based IaC deployment of (mostly) Cloudera (CDH,HDP,HDF) big data clusters including pre-requisites and utility playbooks
 
+## Getting started
+Clone the repository recursively to include submodules:
+```
+git clone --recursive git@github.com:scigility/hadoop-ops.git
+```
+
 ## Folder Structure
 * ansible: Contains the ansible playbooks (and is the main folder to run from)
 * ansible/roles: internal roles (that could be moved to their own repo later)
