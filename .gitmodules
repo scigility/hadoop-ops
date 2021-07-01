@@ -28,3 +28,6 @@
 [submodule "ansible/roles_ext_pub/kerberos_kinit"]
 	path = ansible/roles_ext_pub/kerberos_kinit
 	url = ../kerberos_kinit.git
+[submodule "ansible/roles_ext_pub/ansible-hdfs-dirs"]
+	path = ansible/roles_ext_pub/ansible-hdfs-dirs
+	url = ../ansible-hdfs-dirs.git

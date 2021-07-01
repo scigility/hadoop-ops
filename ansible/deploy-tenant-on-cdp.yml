@@ -13,35 +13,43 @@
   gather_facts: yes
   become: yes
   run_once: true
-  # TODO try via include_role !
-  roles:
-    - ranger_modules
 
   tasks:
-    - import_role:
-        name: kerberos_kinit
-      vars:
-        kerberos_kinit_realm: "{{ kerberos_realm }}"
-        kerberos_kinit_user: "{{ hdfs_root_user }}"
+    - name: do kinit (via role)
+      block:
+        - include_role:
+            name: kerberos_kinit
+          vars:
+            kerberos_kinit_keytab_type: cdh
+            kerberos_kinit_realm: "{{ kerberos_realm }}"
+            kerberos_kinit_user: "{{ hdfs_root_user }}"
       when:
         - kerberos_realm is defined
         - do_kinit | default(True) | bool
       tags: 
         - kinit
+        - hdfs-folders
 
     - name: deploying hdfs folders for all tenants
       block:
         - name: deploying hdfs base folders for tenant {{ item.tenant }}
           include_role:
-            name: deploy-hdp-app
+            name: ansible-hdfs-dirs
           vars:
-            deploy_hdfs_dirs: "{{ item.hdfs_folders | default(hdfs_folders) }}"
+            hdfs_dirs_list: "{{ item.hdfs_folders | default(hdfs_folders) }}"
+            hdfs_dir_default_become_user: "{{ hdfs_root_user }}"
             tenant: "{{ item.tenant }}"
           loop: "{{ hdfs_folder_tenants }}"
       tags: 
         - hdfs-folders
       when:
         - hdfs_folder_tenants is defined
+
+    - import_role:
+        name: ranger_modules
+      tags: 
+        - ranger-hdfs
+        - ranger
 
     - name: deploy Ranger HDFS policies for all tenants
       block:
